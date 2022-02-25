@@ -44,7 +44,7 @@ def server_wrapper(func):
 
 class Ranker:
     '''
-    This class is responsible for providing a high-level interface for ranking sentences by their semantic similarity. It underpins a lot of this library's functionality. The problem is, when you load it for the first time, it will download a 450M language model to your drive. Every time you want to reload your chatbot, it will take around 11-12 seconds just to load mpnet-large. So you may want to start a server in the background via Ranker.start_server().'''
+    This class is responsible for providing a high-level interface for ranking sentences by their semantic similarity. It underpins a lot of this library's functionality. The problem is, when you load it for the first time, it will download a 450M language model to your drive. Every time you want to reload your chatbot, it will take around 11-12 seconds just to load mpnet-large. So you may want to start a server in the background via from acrossword import run; run().'''
     from sentence_transformers import SentenceTransformer, models #type: ignore
     from torch import Tensor
 
