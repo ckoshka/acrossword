@@ -14,7 +14,7 @@ It's useful if you want to avoid larger bloated libraries with capabilities you 
 ## Usage
 
 ```bash
-pip install acrossword
+pip install git+https://github.com/ckoshka/acrossword
 ```
 
 ### Documents
