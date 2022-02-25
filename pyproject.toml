@@ -17,7 +17,7 @@ regex = "2022.1.18"
 requests = "2.25.1"
 sentence_transformers = "2.2.0"
 slate = "0.5.2"
-torch = "1.10.2
+torch = "1.10.2"
 
 [tool.poetry.dev-dependencies]
 
