@@ -17,7 +17,7 @@ import slate
 from loguru import logger
 from nltk.tokenize import sent_tokenize
 from numpy import ndarray
-from rankers.rank import Ranker
+from ..rankers.rank import Ranker
 
 
 def dump(data: Union[Dict, List], f: str) -> None:
