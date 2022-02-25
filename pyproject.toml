@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "acrossword"
+version = "0.1.0"
+description = "Locally-hosted semantic search + web crawling + text processing"
+authors = ["ckoshka"]
+
+[tool.poetry.dependencies]
+python = = "^3.9"
+aiohttp = 3.8.1"
+jusText = "3.0.0"
+loguru = "0.6.0"
+nltk = "3.7"
+numpy = "1.22.2"
+orjson = "3.6.7"
+quart = "0.16.3"
+regex = "2022.1.18"
+requests = "2.25.1"
+sentence_transformers = "2.2.0"
+slate = "0.5.2"
+torch = "1.10.2
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
