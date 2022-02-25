@@ -1,4 +1,4 @@
-from rankers.rank import Ranker
+from ..rankers.rank import Ranker
 ranker = Ranker(is_server=True)
 from quart import Quart, render_template, websocket, request, send_from_directory, make_response, Response
 import pickle

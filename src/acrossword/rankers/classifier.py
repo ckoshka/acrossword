@@ -1,6 +1,6 @@
 """This module uses SentenceTransformers to produce a text classifier based on averaged sentence embeddings. It can be used to filter toxic outputs, or identify good ones."""
 
-from rankers.rank import Ranker
+from ..rankers.rank import Ranker
 from numpy import floating, mean
 import numpy
 from typing import (
