@@ -45,7 +45,7 @@ def server_wrapper(func):
 class Ranker:
     '''
     This class is responsible for providing a high-level interface for ranking sentences by their semantic similarity. It underpins a lot of this library's functionality. The problem is, when you load it for the first time, it will download a 450M language model to your drive. Every time you want to reload your chatbot, it will take around 11-12 seconds just to load mpnet-large. So you may want to start a server in the background via from acrossword import run; run().'''
-    from sentence_transformers import SentenceTransformer, models #type: ignore
+    from sentence_transformers import SentenceTransformer, models
     from torch import Tensor
 
     # Imports occur inside the class because loading these libraries is extremely slow and this prevents quick iterative testing. Is this a good rationale? I don't know, I just find it annoying so you'll have to cope.

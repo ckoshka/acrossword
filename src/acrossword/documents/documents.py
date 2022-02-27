@@ -7,7 +7,7 @@ from io import BytesIO
 from typing import (Any, Callable, Coroutine, Dict, Generator, List, Optional,
                     Tuple, Union)
 from urllib import parse
-
+import os
 import aiohttp
 import justext
 import numpy as np
@@ -142,15 +142,13 @@ class Document(Searchable):
         if len(sentences) == 0:
             raise Exception(f"No sentences found for the url: {url}")
         # Merge them into groups of chunk_size
-        if split_into_sentences:
-            sentences = [
-                "\n".join(sentences[i : i + chunk_size])
-                for i in range(0, len(sentences), chunk_size)
-            ]
+        sentences = [
+            "\n".join(sentences[i : i + chunk_size])
+            for i in range(0, len(sentences), chunk_size)
+        ]
         logger.debug(f"Split the text into sentences\n{sentences[0:10]}")
         # final_length = round(len(sentences) * 0.75)
         # summarised_paragraphs = pythy.summarise_sentences(sentences, final_length)
-        logger.debug(f"Summarised the paragraphs\n{sentences[0:5]}")
 
         self.chunks = {p: [] for p in sentences}
 
@@ -211,6 +209,8 @@ class Document(Searchable):
         split_on_newline: bool = False,
     ) -> "Document":
         document = cls(embedding_model, directory_to_dump)
+        if parse.quote_plus(source) in os.listdir(directory_to_dump):
+            await cls.deserialise(directory_to_dump + "/" + parse.quote_plus(source))
         if is_url:
             await document.extract_from_url(source, split_into_sentences)
         elif is_file:
