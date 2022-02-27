@@ -18,7 +18,7 @@ from loguru import logger
 from nltk.tokenize import sent_tokenize
 from numpy import ndarray
 from ..rankers.rank import Ranker
-
+import itertools
 
 def dump(data: Union[Dict, List], f: str) -> None:
     """
@@ -234,6 +234,7 @@ class Document(Searchable):
         chunk_embeddings.sort(
             key=lambda x: similarity(x[1], np.array(query_embedding[0])), reverse=True
         )
+        logger.debug(f"First chunk embedding looks like: {chunk_embeddings[0][1]}")
         # logger.debug(f"Top results were {chunk_embeddings[0:top]}")
         return [p for p, e in chunk_embeddings[:top]]
 
@@ -266,23 +267,23 @@ class DocumentCollection(Searchable):
     async def search(self, query: str, top: int) -> List[str]:
         """Search for a query in the collection."""
         ranker = Ranker()
-        document_embeddings = [doc.embedding for doc in self.documents]
+        document_embeddings = [(doc, doc.embedding) for doc in self.documents]
         query_embedding = await ranker.convert(
             model_name=ranker.default_model, sentences=tuple([query])
         )
         # Sort the document embeddings by their numpy dot-product with the query embedding
         document_embeddings.sort(
-            key=lambda x: similarity(x, np.array(query_embedding[0])), reverse=True
+            key=lambda x: similarity(x[1], np.array(query_embedding[0])), reverse=True
         )
-        top_results_for_top_documents = await asyncio.gather(
-            *[doc.search(query, top) for doc in self.documents[:top]]
+        logger.debug(f"Top result was {document_embeddings[0][0].title}")
+        top_results_for_top_documents: tuple[List[str]] = await asyncio.gather(
+            *[doc.search(query, top) for doc, emb in document_embeddings[:top*2]]
         )
-        joined_results = "\n".join(
-            ["\n".join([r for r in res]) for res in top_results_for_top_documents]
-        )
+        logger.debug(f"Top results were {top_results_for_top_documents}")
+        joined_results = '\n'.join(list(itertools.chain.from_iterable(top_results_for_top_documents)))
         sentences = sent_tokenize(joined_results)
         ranked_results = await ranker.rank(
-            texts=sentences,
+            texts=tuple(sentences),
             query=query,
             top_k=top,
             model=ranker.default_model,
