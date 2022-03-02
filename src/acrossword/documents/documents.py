@@ -142,10 +142,11 @@ class Document(Searchable):
         if len(sentences) == 0:
             raise Exception(f"No sentences found for the url: {url}")
         # Merge them into groups of chunk_size
-        sentences = [
-            "\n".join(sentences[i : i + chunk_size])
-            for i in range(0, len(sentences), chunk_size)
-        ]
+        if split_into_sentences:
+            sentences = [
+                "\n".join(sentences[i : i + chunk_size])
+                for i in range(0, len(sentences), chunk_size)
+            ]
         logger.debug(f"Split the text into sentences\n{sentences[0:10]}")
         # final_length = round(len(sentences) * 0.75)
         # summarised_paragraphs = pythy.summarise_sentences(sentences, final_length)
@@ -180,11 +181,27 @@ class Document(Searchable):
         )
         logger.debug(f"Converted {len(self.chunks)} chunks to embeddings")
         self.chunks = {
-            p: np.around(np.array(e), 6) for p, e in zip(self.chunks.keys(), embeddings)
+            p: np.around(np.array(e), 5) for p, e in zip(self.chunks.keys(), embeddings)
         }
         embeddings_as_np_array: List[np.ndarray] = [e.numpy() for e in embeddings]
         logger.debug(f"Converted the embeddings to numpy array")
         self.embedding = np.mean(embeddings_as_np_array, axis=0)
+
+    async def add_chunk(self, chunk: str) -> None:
+        """
+        Adds a chunk to the document and embeds it.
+        :param chunk: The chunk to add.
+        """
+        ranker = Ranker()
+        while await ranker.is_empty():
+            await asyncio.sleep(0.2)
+        self.chunks[chunk] = await ranker.convert(
+            model_name=self.embedding_model, sentences=[chunk]
+        )
+        self.chunks[chunk] = np.around(np.array(self.chunks[chunk]), 5)
+        all_embeddings = [e.numpy() for e in self.chunks.values()]
+        self.embedding = np.mean(all_embeddings, axis=0)
+        
 
     async def serialise(self) -> None:
 
@@ -221,6 +238,53 @@ class Document(Searchable):
         await document.serialise()
         return document
 
+    @classmethod
+    async def from_string(
+        cls,
+        source: str,
+        source_name: str,
+        embedding_model: str,
+        directory_to_dump: str,
+        split_into_sentences: bool = False,
+    ) -> "Document":
+        document = cls(embedding_model, directory_to_dump)
+        document.title = source_name
+        await document.extract_from_string(source, split_into_sentences)
+        await document.embed()
+        await document.serialise()
+        return document
+
+    @classmethod
+    async def from_sentences(
+        cls,
+        source: List[str],
+        source_name: str,
+        embedding_model: str,
+        directory_to_dump: str,
+    ) -> "Document":
+        document = cls(embedding_model, directory_to_dump)
+        document.title = source_name
+        await document.extract_from_sentences(source)
+        await document.embed()
+        await document.serialise()
+        return document
+
+    async def extract_from_sentences(self, sentences: List[str]) -> None:
+        """
+        Extracts the sentences from a list of strings.
+        :param sentences: The list of strings.
+        """
+        self.chunks = {p: [] for p in sentences}
+
+    async def extract_from_string(
+        self, source: str, split_into_sentences: bool = False
+    ) -> None:
+        if split_into_sentences:
+            sentences = sent_tokenize(source)
+        else:
+            sentences = source.split("\n")
+        self.chunks = {p: [] for p in sentences}
+
     async def search(self, query: str, top: int, **kwargs: dict) -> List[str]:
 
         logger.debug(f"Searching for {query}")
@@ -253,6 +317,9 @@ class DocumentCollection(Searchable):
         self.documents: List[Document] = documents
         self.embedding: Optional[np.ndarray] = None
         self.__dict__.update(kwargs)
+
+    def retrieve(self, name: str) -> Document:
+        return [doc for doc in self.documents if doc.title == name][0]
 
     def extend_documents(self, documents: List[Document]) -> None:
         self.documents.extend(documents)

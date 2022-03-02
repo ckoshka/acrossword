@@ -53,6 +53,7 @@ class Ranker:
     __models_cache__: Dict[str, SentenceTransformer] = dict()
 
     server_is_running = None
+    is_loading_model = False
 
     def __init__(
         self, #model_locations: List[str] = list(),
@@ -81,6 +82,7 @@ class Ranker:
         model.max_seq_length = 512
         self.__models_cache__[model_name] = model
         self.__text_embeddings_cache__[model_name] = dict()
+        self.is_loading_model = False
 
     def _load_from_file(self, model_name: str) -> None:
         word_embedding_model = self.models.Transformer(model_name)
@@ -91,6 +93,7 @@ class Ranker:
         model.max_seq_length = 512
         self.__models_cache__[model_name] = model
         self.__text_embeddings_cache__[model_name] = dict()
+        self.is_loading_model = False
 
     @server_wrapper
     async def add_model(self, model_name: str, from_file: bool = False) -> None:
@@ -98,6 +101,7 @@ class Ranker:
             #self._load_from_file(model_name)
         #else:
             #self._download_model(model_name)
+        self.is_loading_model = True
         if from_file:
             threading.Thread(target=self._load_from_file, args=[model_name]).start()
         else:
@@ -118,8 +122,9 @@ class Ranker:
                 if sentence not in self.__text_embeddings_cache__[model_name]:
                     not_in_cache[i] = sentence
         except KeyError:
-            await self.add_model(model_name=model_name)
-            while model_name not in self.__models_cache__:
+            if not self.is_loading_model:
+                await self.add_model(model_name=model_name)
+            while model_name not in self.__models_cache__ and self.is_loading_model:
                 await asyncio.sleep(0.1)
             return await self.convert(model_name=model_name, sentences=sentences)
         if not_in_cache:
