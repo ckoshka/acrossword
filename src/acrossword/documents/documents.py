@@ -163,7 +163,11 @@ class Document(Searchable):
             sentences = text.split("\n")
         else:
             sentences = sent_tokenize(text)
-        sentences = [s for s in sentences if len(s) > 20]
+        sentences = [s for s in sentences if len(s) > 30]
+        sentences = [
+            "\n".join(sentences[i : i + 3])
+            for i in range(0, len(sentences), 3)
+        ]
         self.chunks = {p: [] for p in sentences}
         self.title = filename
 
@@ -283,6 +287,11 @@ class Document(Searchable):
             sentences = sent_tokenize(source)
         else:
             sentences = source.split("\n")
+        sentences = [s for s in sentences if len(s) > 30]
+        sentences = [
+            "\n".join(sentences[i : i + 3])
+            for i in range(0, len(sentences), 3)
+        ]
         self.chunks = {p: [] for p in sentences}
 
     async def search(self, query: str, top: int, **kwargs: dict) -> List[str]:
@@ -342,7 +351,7 @@ class DocumentCollection(Searchable):
         document_embeddings.sort(
             key=lambda x: similarity(x[1], np.array(query_embedding[0])), reverse=True
         )
-        logger.debug(f"Top result was {document_embeddings[0][0].title}")
+        #logger.debug(f"Top result was {document_embeddings[0][0].title}")
         top_results_for_top_documents: tuple[List[str]] = await asyncio.gather(
             *[doc.search(query, top) for doc, emb in document_embeddings[:top*2]]
         )
