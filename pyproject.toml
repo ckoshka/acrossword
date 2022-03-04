@@ -16,7 +16,6 @@ quart = "0.16.3"
 regex = "2022.1.18"
 requests = "2.25.1"
 sentence_transformers = "2.2.0"
-slate = {git = "https://github.com/timClicks/slate"}
 torch = "1.10.2"
 
 [tool.poetry.dev-dependencies]

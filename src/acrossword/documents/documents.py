@@ -13,7 +13,6 @@ import justext
 import numpy as np
 import orjson
 import regex as re
-import slate
 from loguru import logger
 from nltk.tokenize import sent_tokenize
 from numpy import ndarray
@@ -132,13 +131,14 @@ class Document(Searchable):
                     paras_joined = ". ".join(sentences)
                     sentences = sent_tokenize(paras_joined)
             else:
-                f = BytesIO(await resp.read())
-                loop = asyncio.get_event_loop()
-                doc = await loop.run_in_executor(None, slate.PDF, f)
-                sentences = sent_tokenize(dehyphenate(doc.text(clean=False)))
-                sentences = trim_short_sentences(sentences)
-                split_into_sentences = True
-                f.close()
+                raise Exception(f"PDFs are not supported yet")
+                #f = BytesIO(await resp.read())
+                #loop = asyncio.get_event_loop()
+                #doc = await loop.run_in_executor(None, slate.PDF, f)
+                #sentences = sent_tokenize(dehyphenate(doc.text(clean=False)))
+                #sentences = trim_short_sentences(sentences)
+                #split_into_sentences = True
+                #f.close()
         if len(sentences) == 0:
             raise Exception(f"No sentences found for the url: {url}")
         # Merge them into groups of chunk_size
