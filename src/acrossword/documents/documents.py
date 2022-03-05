@@ -177,6 +177,8 @@ class Document(Searchable):
         '''The import is inside this function because torch is a massive library and takes a prohibitive amount of time to load.'''
 
         ranker = Ranker()
+        if not ranker.is_loading_model and await ranker.is_empty():
+            ranker._download_model(self.embedding_model)
         while await ranker.is_empty():
             await asyncio.sleep(0.2)
         logger.debug(f"Converting the chunks to embeddings")
@@ -228,12 +230,13 @@ class Document(Searchable):
         is_file: bool = False,
         split_into_sentences: bool = False,
         split_on_newline: bool = False,
+        chunk_size: int = 3,
     ) -> "Document":
         document = cls(embedding_model, directory_to_dump)
         if parse.quote_plus(source) in os.listdir(directory_to_dump):
             await cls.deserialise(directory_to_dump + "/" + parse.quote_plus(source))
         if is_url:
-            await document.extract_from_url(source, split_into_sentences)
+            await document.extract_from_url(source, split_into_sentences=split_into_sentences, chunk_size=chunk_size)
         elif is_file:
             await document.extract_from_file(source, split_on_newline)
         else:
