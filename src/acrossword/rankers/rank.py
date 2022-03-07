@@ -1,4 +1,3 @@
-
 from typing import List, Dict, Union, Optional, Tuple, Any, Callable, ClassVar
 import numpy
 import threading
@@ -10,8 +9,10 @@ import asyncio
 import pickle
 import requests
 
+
 def server_wrapper(func):
-    '''Checks for a server at http://localhost:22647/. If there isn't one, it sets server_is_running to False, and it returns the function as per normal. Otherwise, it returns a function that takes the **kwargs and makes a post request to the server using the kwargs, and a field called 'method' with the name of the function. If that fails, it calls the function as per normal.'''
+    """Checks for a server at http://localhost:22647/. If there isn't one, it sets server_is_running to False, and it returns the function as per normal. Otherwise, it returns a function that takes the **kwargs and makes a post request to the server using the kwargs, and a field called 'method' with the name of the function. If that fails, it calls the function as per normal."""
+
     async def interceptor_inner_wrapper(self, **kwargs):
         if self.is_server:
             self.server_is_running = False
@@ -36,6 +37,7 @@ def server_wrapper(func):
             self.server_is_running == False
             return await func(self, **kwargs)
         return obj
+
     interceptor_inner_wrapper.__doc__ = func.__doc__
     interceptor_inner_wrapper.__annotations__ = func.__annotations__
     interceptor_inner_wrapper.__name__ = func.__name__
@@ -43,8 +45,9 @@ def server_wrapper(func):
 
 
 class Ranker:
-    '''
-    This class is responsible for providing a high-level interface for ranking sentences by their semantic similarity. It underpins a lot of this library's functionality. The problem is, when you load it for the first time, it will download a 450M language model to your drive. Every time you want to reload your chatbot, it will take around 11-12 seconds just to load mpnet-large. So you may want to start a server in the background via from acrossword import run; run().'''
+    """
+    This class is responsible for providing a high-level interface for ranking sentences by their semantic similarity. It underpins a lot of this library's functionality. The problem is, when you load it for the first time, it will download a 450M language model to your drive. Every time you want to reload your chatbot, it will take around 11-12 seconds just to load mpnet-large. So you may want to start a server in the background via from acrossword import run; run()."""
+
     from sentence_transformers import SentenceTransformer, models
     from torch import Tensor
 
@@ -56,17 +59,17 @@ class Ranker:
     is_loading_model = False
 
     def __init__(
-        self, #model_locations: List[str] = list(),
+        self,  # model_locations: List[str] = list(),
         default_model: str = "all-mpnet-base-v2",
         is_server: bool = False,
     ) -> None:
         self.default_model = default_model
         self.is_server = is_server
-        #for model_name in model_locations:
-            #threading.Thread(
-                #target=self._load_model, args=[model_name]
-            #).start()
-            #self._load_model(model_name)
+        # for model_name in model_locations:
+        # threading.Thread(
+        # target=self._load_model, args=[model_name]
+        # ).start()
+        # self._load_model(model_name)
 
     @server_wrapper
     async def is_empty(self) -> bool:
@@ -97,10 +100,10 @@ class Ranker:
 
     @server_wrapper
     async def add_model(self, model_name: str, from_file: bool = False) -> None:
-        #if from_file:
-            #self._load_from_file(model_name)
-        #else:
-            #self._download_model(model_name)
+        # if from_file:
+        # self._load_from_file(model_name)
+        # else:
+        # self._download_model(model_name)
         self.is_loading_model = True
         if from_file:
             threading.Thread(target=self._load_from_file, args=[model_name]).start()
@@ -128,7 +131,9 @@ class Ranker:
                 await asyncio.sleep(0.1)
             return await self.convert(model_name=model_name, sentences=sentences)
         if not_in_cache:
-            embeddings = await self._convert(model_name=model_name, sentences=tuple(not_in_cache.values()))
+            embeddings = await self._convert(
+                model_name=model_name, sentences=tuple(not_in_cache.values())
+            )
             for i, embedding in enumerate(embeddings):
                 position = list(not_in_cache.keys())[i]
                 self.__text_embeddings_cache__[model_name][
@@ -144,13 +149,17 @@ class Ranker:
     ) -> Union[List[Tensor], numpy.ndarray, Tensor]:
         model = self.__models_cache__[model_name]
         current_loop = asyncio.get_running_loop()
-        embeddings = await current_loop.run_in_executor(None, functools.partial(model.encode, 
-            list(sentences),
-            convert_to_tensor=True,
-            batch_size=5,
-            show_progress_bar=True,
-            normalize_embeddings=True,
-        ))
+        embeddings = await current_loop.run_in_executor(
+            None,
+            functools.partial(
+                model.encode,
+                list(sentences),
+                convert_to_tensor=True,
+                batch_size=5,
+                show_progress_bar=True,
+                normalize_embeddings=True,
+            ),
+        )
         for i, embedding in enumerate(embeddings):
             self.__text_embeddings_cache__[model_name][sentences[i]] = embedding
         return embeddings
@@ -170,7 +179,9 @@ class Ranker:
         if isinstance(texts, list):
             texts = tuple(texts)
 
-        text_embeddings, query_embedding = await self.convert(model_name=model, sentences=texts), await self.convert(model_name=model, sentences=tuple([query]))
+        text_embeddings, query_embedding = await self.convert(
+            model_name=model, sentences=texts
+        ), await self.convert(model_name=model, sentences=tuple([query]))
 
         return await self._rank(
             texts,
@@ -197,8 +208,12 @@ class Ranker:
         if isinstance(texts, list):
             texts = tuple(texts)
 
-        text_embeddings, query_embeddings = await self.convert(model_name=model, sentences=texts), await self.convert(model_name=model, sentences=queries)
-        weighted_average_query = numpy.average(query_embeddings, axis=0, weights=weights)
+        text_embeddings, query_embeddings = await self.convert(
+            model_name=model, sentences=texts
+        ), await self.convert(model_name=model, sentences=queries)
+        weighted_average_query = numpy.average(
+            query_embeddings, axis=0, weights=weights
+        )
         return await self._rank(
             texts,
             text_embeddings,
@@ -217,26 +232,29 @@ class Ranker:
         threshold: float,
         return_none_if_below_threshold: bool,
     ) -> List[str]:
-    
+
         results = list()
-        #logger.debug(f"Query embedding shape: {query_embedding.shape}")
-        #logger.debug(f"Query embeddings: {query_embedding}")
+        # logger.debug(f"Query embedding shape: {query_embedding.shape}")
+        # logger.debug(f"Query embeddings: {query_embedding}")
         for i, tensor_embedding in enumerate(text_embeddings):
             similarity_tuple = (
                 texts[i],
                 numpy.dot(query_embedding, tensor_embedding),
             )
-            if (similarity_tuple[1] >= threshold and return_none_if_below_threshold) or not return_none_if_below_threshold:
+            if (
+                similarity_tuple[1] >= threshold and return_none_if_below_threshold
+            ) or not return_none_if_below_threshold:
                 results.append(similarity_tuple)
 
         results.sort(key=lambda similarity_tuple: similarity_tuple[1], reverse=True)
 
         return [result[0] for result in results][:top_k]
 
+
 # Note that the above takes a very long time to load, so often users will have a localhost:5000 server with an instance of Ranker already running, accessible via json requests in the form:
-#async with aiohttp.ClientSession() as session:
-    #async with session.post("http://localhost:5000/", json={"method": "convert", "sentences": ["cats", "stones", "Jupiter"],  "model_name": "all-mpnet-base-v2"}) as resp:
-        #r = await resp.read()
-#obj = pickle.loads(r)
+# async with aiohttp.ClientSession() as session:
+# async with session.post("http://localhost:5000/", json={"method": "convert", "sentences": ["cats", "stones", "Jupiter"],  "model_name": "all-mpnet-base-v2"}) as resp:
+# r = await resp.read()
+# obj = pickle.loads(r)
 
 # So this module also creates a class decorator that sneakily intercepts all of its methods, checking for the existence of a localhost:5000 server, and if it exists, it uses it to do the work.

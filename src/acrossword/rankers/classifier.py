@@ -27,13 +27,13 @@ class Category:
 
     @classmethod
     async def from_sentences(
-        cls, sentences: Iterable[str], name: str, model: str = None
+        cls, sentences: Iterable[str], name: str, model: Optional[str] = None
     ) -> "Category":
         if not model:
             model = cls.ranker.default_model
-        sentence_embds = await cls.ranker.convert(
+        sentence_embds = [numpy.array(t) for t in await cls.ranker.convert(
             model_name=model, sentences=list(sentences)
-        )
+        )]
         centroid = mean(sentence_embds, axis=0)
         return Category(name=name, centroid=centroid)
 
@@ -46,7 +46,7 @@ class Classifier:
 
     @classmethod
     async def from_dict(
-        cls, categories: Dict[str, List[str]], model: str = None
+        cls, categories: Dict[str, List[str]], model: Optional[str] = None
     ) -> "Classifier":
         cat_list: List[Coroutine[None, None, Category]] = []
         for name, sentences in categories.items():
@@ -58,11 +58,11 @@ class Classifier:
         self.categories.append(category)
 
     async def create_category(
-        self, name: str, sentences: List[str], model: str = None
+        self, name: str, sentences: List[str], model: Optional[str] = None
     ) -> None:
         self.add_category(await Category.from_sentences(sentences, name, model))
 
-    async def classify(self, event: str, model: str = None) -> str:
+    async def classify(self, event: str, model: Optional[str] = None) -> str:
         if not model:
             model = self.ranker.default_model
         if isinstance(event, str):
