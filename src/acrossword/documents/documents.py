@@ -202,10 +202,11 @@ class Document(Searchable):
         while await ranker.is_empty():
             await asyncio.sleep(0.2)
         self.chunks[chunk] = await ranker.convert(
-            model_name=self.embedding_model, sentences=[chunk]
+            model_name=self.embedding_model, sentences=tuple(chunk)
         )
+        self.chunks[chunk] = self.chunks[chunk][0]
         self.chunks[chunk] = np.around(np.array(self.chunks[chunk]), 5)
-        all_embeddings = [e.numpy() for e in self.chunks.values()]
+        all_embeddings = [np.array(e) for e in self.chunks.values()]
         self.embedding = np.mean(all_embeddings, axis=0)
         
 
@@ -215,7 +216,7 @@ class Document(Searchable):
 
         loop = asyncio.get_event_loop()
 
-        await loop.run_in_executor(None, dump, 
+        dump(
             self.__dict__,
             self.directory_to_dump + f"/{parse.quote_plus(self.title)}.json",
         )
@@ -359,10 +360,9 @@ class DocumentCollection(Searchable):
             *[doc.search(query, top) for doc, emb in document_embeddings[:top*2]]
         )
         logger.debug(f"Top results were {top_results_for_top_documents}")
-        joined_results = '\n'.join(list(itertools.chain.from_iterable(top_results_for_top_documents)))
-        sentences = sent_tokenize(joined_results)
+        joined_results = list(itertools.chain.from_iterable(top_results_for_top_documents))
         ranked_results = await ranker.rank(
-            texts=tuple(sentences),
+            texts=tuple(joined_results),
             query=query,
             top_k=top,
             model=ranker.default_model,
