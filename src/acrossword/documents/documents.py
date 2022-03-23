@@ -189,7 +189,7 @@ class Document(Searchable):
         self.chunks = {
             p: np.around(np.array(e), 5) for p, e in zip(self.chunks.keys(), embeddings)
         }
-        embeddings_as_np_array: List[np.ndarray] = [e.numpy() for e in embeddings]
+        embeddings_as_np_array: List[np.ndarray] = [e.cpu().numpy() for e in embeddings]
         logger.debug(f"Converted the embeddings to numpy array")
         self.embedding = np.mean(embeddings_as_np_array, axis=0)
 
@@ -309,7 +309,7 @@ class Document(Searchable):
         )
         chunk_embeddings = [(p, np.array(e)) for p, e in self.chunks.items()]
         chunk_embeddings.sort(
-            key=lambda x: similarity(x[1], np.array(query_embedding[0])), reverse=True
+            key=lambda x: similarity(x[1], np.array(query_embedding[0].cpu())), reverse=True
         )
         logger.debug(f"First chunk embedding looks like: {chunk_embeddings[0][1]}")
         # logger.debug(f"Top results were {chunk_embeddings[0:top]}")
@@ -353,7 +353,7 @@ class DocumentCollection(Searchable):
         )
         # Sort the document embeddings by their numpy dot-product with the query embedding
         document_embeddings.sort(
-            key=lambda x: similarity(x[1], np.array(query_embedding[0])), reverse=True
+            key=lambda x: similarity(x[1], np.array(query_embedding[0].cpu())), reverse=True
         )
         #logger.debug(f"Top result was {document_embeddings[0][0].title}")
         top_results_for_top_documents: tuple[List[str]] = await asyncio.gather(

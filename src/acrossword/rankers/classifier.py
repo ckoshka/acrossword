@@ -31,7 +31,7 @@ class Category:
     ) -> "Category":
         if not model:
             model = cls.ranker.default_model
-        sentence_embds = [numpy.array(t) for t in await cls.ranker.convert(
+        sentence_embds = [numpy.array(t.cpu()) for t in await cls.ranker.convert(
             model_name=model, sentences=list(sentences)
         )]
         centroid = mean(sentence_embds, axis=0)
