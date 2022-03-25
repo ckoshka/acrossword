@@ -187,7 +187,7 @@ class Document(Searchable):
         )
         logger.debug(f"Converted {len(self.chunks)} chunks to embeddings")
         self.chunks = {
-            p: np.around(np.array(e), 5) for p, e in zip(self.chunks.keys(), embeddings)
+            p: np.around(np.array(e.cpu()), 5) for p, e in zip(self.chunks.keys(), embeddings)
         }
         embeddings_as_np_array: List[np.ndarray] = [e.cpu().numpy() for e in embeddings]
         logger.debug(f"Converted the embeddings to numpy array")
@@ -206,7 +206,7 @@ class Document(Searchable):
         )
         self.chunks[chunk] = self.chunks[chunk][0]
         self.chunks[chunk] = np.around(np.array(self.chunks[chunk]), 5)
-        all_embeddings = [np.array(e) for e in self.chunks.values()]
+        all_embeddings = [np.array(e.cpu()) for e in self.chunks.values()]
         self.embedding = np.mean(all_embeddings, axis=0)
         
 
@@ -311,7 +311,7 @@ class Document(Searchable):
         chunk_embeddings.sort(
             key=lambda x: similarity(x[1], np.array(query_embedding[0].cpu())), reverse=True
         )
-        logger.debug(f"First chunk embedding looks like: {chunk_embeddings[0][1]}")
+        # logger.debug(f"First chunk embedding looks like: {chunk_embeddings[0][1]}")
         # logger.debug(f"Top results were {chunk_embeddings[0:top]}")
         return [p for p, e in chunk_embeddings[:top]]
 

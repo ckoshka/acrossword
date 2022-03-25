@@ -69,7 +69,7 @@ class Classifier:
             _event = tuple([event])
         embds = await self.ranker.convert(model_name=model, sentences=_event)
         distances: Dict[str, floating] = {
-            category.name: numpy.linalg.norm(embds[0] - category.centroid)
+            category.name: numpy.linalg.norm(embds[0].cpu() - category.centroid)
             for category in self.categories
         }
         closest_category = min(distances.items(), key=lambda x: float(x[1]))[0]
