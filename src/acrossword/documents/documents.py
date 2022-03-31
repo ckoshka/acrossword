@@ -355,7 +355,7 @@ class DocumentCollection(Searchable):
         document_embeddings.sort(
             key=lambda x: similarity(x[1], np.array(query_embedding[0].cpu())), reverse=True
         )
-        #logger.debug(f"Top result was {document_embeddings[0][0].title}")
+        logger.debug(f"Top results were in {[doc.title for doc, emb in document_embeddings[:top*2]]}")
         top_results_for_top_documents: tuple[List[str]] = await asyncio.gather(
             *[doc.search(query, top) for doc, emb in document_embeddings[:top*2]]
         )
