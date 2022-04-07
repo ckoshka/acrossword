@@ -1,4 +1,4 @@
-from ..rankers.rank import Ranker
+from acrossword.rankers.rank import Ranker
 
 ranker = Ranker(is_server=True)
 from quart import (
