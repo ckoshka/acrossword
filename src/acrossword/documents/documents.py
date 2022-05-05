@@ -121,9 +121,9 @@ class Document(Searchable):
                 html = await resp.text()
                 logger.debug(f"Retrieved the html for the page\n{html[0:200]}")
                 extracted = justext.justext(html, justext.get_stoplist("English"))
-                logger.debug(
-                    f"Extracted the text from the html\n{extracted[0].text[0:200]}"
-                )
+                # logger.debug(
+                #     f"Extracted the text from the html\n{extracted[0].text[0:200]}"
+                # )
                 logger.debug(f"Total length: {len(extracted)}")
                 sentences = [p.text for p in extracted if not p.is_boilerplate]
                 logger.debug(f"Total sentences: {len(sentences)}")
@@ -147,7 +147,7 @@ class Document(Searchable):
                 "\n".join(sentences[i : i + chunk_size])
                 for i in range(0, len(sentences), chunk_size)
             ]
-        logger.debug(f"Split the text into sentences\n{sentences[0:10]}")
+        # logger.debug(f"Split the text into sentences\n{sentences[0:10]}")
         # final_length = round(len(sentences) * 0.75)
         # summarised_paragraphs = pythy.summarise_sentences(sentences, final_length)
 
@@ -172,7 +172,6 @@ class Document(Searchable):
         self.title = filename
 
     async def embed(self) -> None:
-
         from torch import Tensor
         '''The import is inside this function because torch is a massive library and takes a prohibitive amount of time to load.'''
 
@@ -181,16 +180,16 @@ class Document(Searchable):
             ranker._download_model(self.embedding_model)
         while await ranker.is_empty():
             await asyncio.sleep(0.2)
-        logger.debug(f"Converting the chunks to embeddings")
+        # logger.debug(f"Converting the chunks to embeddings")
         embeddings: List[Tensor] = await ranker.convert(
             model_name=self.embedding_model, sentences=tuple(self.chunks.keys())
         )
-        logger.debug(f"Converted {len(self.chunks)} chunks to embeddings")
+        # logger.debug(f"Converted {len(self.chunks)} chunks to embeddings")
         self.chunks = {
-            p: np.around(np.array(e), 5) for p, e in zip(self.chunks.keys(), embeddings)
+            p: np.around(np.array(e.cpu()), 5) for p, e in zip(self.chunks.keys(), embeddings)
         }
-        embeddings_as_np_array: List[np.ndarray] = [e.numpy() for e in embeddings]
-        logger.debug(f"Converted the embeddings to numpy array")
+        embeddings_as_np_array: List[np.ndarray] = [e.cpu().numpy() for e in embeddings]
+        # logger.debug(f"Converted the embeddings to numpy array")
         self.embedding = np.mean(embeddings_as_np_array, axis=0)
 
     async def add_chunk(self, chunk: str) -> None:
@@ -206,7 +205,7 @@ class Document(Searchable):
         )
         self.chunks[chunk] = self.chunks[chunk][0]
         self.chunks[chunk] = np.around(np.array(self.chunks[chunk]), 5)
-        all_embeddings = [np.array(e) for e in self.chunks.values()]
+        all_embeddings = [np.array(e.cpu()) for e in self.chunks.values()]
         self.embedding = np.mean(all_embeddings, axis=0)
         
 
@@ -234,8 +233,12 @@ class Document(Searchable):
         chunk_size: int = 3,
     ) -> "Document":
         document = cls(embedding_model, directory_to_dump)
-        if parse.quote_plus(source) in os.listdir(directory_to_dump):
-            await cls.deserialise(directory_to_dump + "/" + parse.quote_plus(source))
+        maybe_savefile =  parse.quote_plus(source) + ".json"
+        logger.debug(f"Looking for document {maybe_savefile} in {directory_to_dump}")
+        if maybe_savefile in os.listdir(directory_to_dump):
+            logger.debug(f"Deserialising document {maybe_savefile} from saved knowledge")
+            document = await cls.deserialise(directory_to_dump + "/" + maybe_savefile)
+            return document
         if is_url:
             await document.extract_from_url(source, split_into_sentences=split_into_sentences, chunk_size=chunk_size)
         elif is_file:
@@ -300,7 +303,7 @@ class Document(Searchable):
 
     async def search(self, query: str, top: int, **kwargs: dict) -> List[str]:
 
-        logger.debug(f"Searching for {query}")
+        # logger.debug(f"Searching for {query}")
 
         ranker = Ranker()
 
@@ -309,9 +312,9 @@ class Document(Searchable):
         )
         chunk_embeddings = [(p, np.array(e)) for p, e in self.chunks.items()]
         chunk_embeddings.sort(
-            key=lambda x: similarity(x[1], np.array(query_embedding[0])), reverse=True
+            key=lambda x: similarity(x[1], np.array(query_embedding[0].cpu())), reverse=True
         )
-        logger.debug(f"First chunk embedding looks like: {chunk_embeddings[0][1]}")
+        # logger.debug(f"First chunk embedding looks like: {chunk_embeddings[0][1]}")
         # logger.debug(f"Top results were {chunk_embeddings[0:top]}")
         return [p for p, e in chunk_embeddings[:top]]
 
@@ -353,13 +356,13 @@ class DocumentCollection(Searchable):
         )
         # Sort the document embeddings by their numpy dot-product with the query embedding
         document_embeddings.sort(
-            key=lambda x: similarity(x[1], np.array(query_embedding[0])), reverse=True
+            key=lambda x: similarity(x[1], np.array(query_embedding[0].cpu())), reverse=True
         )
-        #logger.debug(f"Top result was {document_embeddings[0][0].title}")
+        logger.debug(f"Top results were in {[doc.title for doc, emb in document_embeddings[:top*2]]}")
         top_results_for_top_documents: tuple[List[str]] = await asyncio.gather(
             *[doc.search(query, top) for doc, emb in document_embeddings[:top*2]]
         )
-        logger.debug(f"Top results were {top_results_for_top_documents}")
+        # logger.debug(f"Top results were {top_results_for_top_documents}")
         joined_results = list(itertools.chain.from_iterable(top_results_for_top_documents))
         ranked_results = await ranker.rank(
             texts=tuple(joined_results),
