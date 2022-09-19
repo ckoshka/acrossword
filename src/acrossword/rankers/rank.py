@@ -239,7 +239,7 @@ class Ranker:
         for i, tensor_embedding in enumerate(text_embeddings):
             similarity_tuple = (
                 texts[i],
-                numpy.dot(query_embedding, tensor_embedding),
+                numpy.dot(query_embedding.cpu(), tensor_embedding.cpu()),
             )
             if (
                 similarity_tuple[1] >= threshold and return_none_if_below_threshold

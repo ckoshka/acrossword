@@ -12,11 +12,11 @@ loguru = "0.6.0"
 nltk = "3.7"
 numpy = "1.22.2"
 orjson = "3.6.7"
-quart = "0.16.3"
+quart = "0.17.0"
 regex = "2022.1.18"
 requests = "2.25.1"
 sentence_transformers = "2.2.0"
-torch = "1.10.2"
+torch = "1.11.0"
 
 [tool.poetry.dev-dependencies]
 
